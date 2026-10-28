@@ -8,7 +8,7 @@ import { register, registerChange } from '../actions.js';
 import { cargarEjemplo } from '../seed.js';
 import { icon } from '../icons.js';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 
 const opt = (v, l, cur) => `<option value="${esc(v)}"${String(v) === String(cur) ? ' selected' : ''}>${esc(l)}</option>`;
 

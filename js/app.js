@@ -13,6 +13,7 @@ import * as tareas from './views/tareas.js';
 import * as ajustes from './views/ajustes.js';
 import * as busqueda from './search.js';
 import './views/forms.js';
+import './views/captura.js';
 import './views/calui.js';
 import './backup.js';
 

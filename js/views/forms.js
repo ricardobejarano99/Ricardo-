@@ -1,10 +1,10 @@
-// Formularios de alta y edición, y la captura rápida.
+// Formularios de alta y edición.
 import * as store from '../store.js';
 import { state } from '../store.js';
 import { openForm, confirmDialog, toast, todayISO, esc, fmtFechaLarga } from '../util.js';
 import { TIPOS_EXP, ESTATUS_EXP, ETAPAS, TIPOS_AUD, PRIORIDADES } from '../catalogos.js';
 import { calcularPlazo, diasRestantes, semaforo, prevHabil } from '../plazos.js';
-import { calendario, expById, restanteTexto, SEM_LABEL } from './common.js';
+import { calendario, expById, restanteTexto, SEM_LABEL, vencimientoManual } from './common.js';
 import { register } from '../actions.js';
 
 function expOptions(none = '— Sin expediente —') {
@@ -86,10 +86,20 @@ export function editarAudiencia(a, expedienteId = '', fecha = todayISO()) {
   });
 }
 
+function calcDe(d) {
+  return d.modo === 'fijo'
+    ? vencimientoManual(d.vencimientoFijo)
+    : calcularPlazo(calendario(), { notificacion: d.notificacion, dias: d.dias, tipo: d.tipoDias, surte: d.surte, recorrer: d.recorrer });
+}
+
 function previewPlazo(d) {
   const cal = calendario();
-  const calc = calcularPlazo(cal, { notificacion: d.notificacion, dias: d.dias, tipo: d.tipoDias, surte: d.surte, recorrer: d.recorrer });
-  if (!calc) return '<p class="muted">Captura la fecha de notificación y el número de días para calcular el vencimiento.</p>';
+  const calc = calcDe(d);
+  if (!calc) {
+    return d.modo === 'fijo'
+      ? '<p class="muted">Captura la fecha de vencimiento.</p>'
+      : '<p class="muted">Captura la fecha de notificación y el número de días para calcular el vencimiento.</p>';
+  }
   const rest = diasRestantes(cal, todayISO(), calc.vencimiento, d.tipoDias);
   const sem = semaforo(rest, state.settings.semaforo);
   const aviso = prevHabil(cal, calc.vencimiento);
@@ -98,7 +108,9 @@ function previewPlazo(d) {
     <div class="calc-date">${esc(fmtFechaLarga(calc.vencimiento))}</div>
     <div class="calc-row"><span class="dot sem-${sem}"></span><span class="sem-text sem-${sem}">${esc(restanteTexto(rest, d.tipoDias))} · ${SEM_LABEL[sem]}</span></div>
     <div class="calc-warn">Verificar cómputo</div>
-    <div class="calc-detail">Surte efectos: ${esc(fmtFechaLarga(calc.efectos))}<br>Primer día del cómputo: ${esc(fmtFechaLarga(calc.inicio))}${calc.recorrido ? '<br>El último día era inhábil: se recorrió al siguiente hábil.' : ''}<br>Aviso: ${esc(fmtFechaLarga(aviso))}, ${esc(state.settings.horaAviso)} h</div>
+    <div class="calc-detail">${calc.manual
+    ? `Vencimiento capturado, sin cómputo.${cal.esHabil(calc.vencimiento) ? '' : `<br><strong>Cae en día inhábil (${esc(cal.motivo(calc.vencimiento))}).</strong>`}`
+    : `Surte efectos: ${esc(fmtFechaLarga(calc.efectos))}<br>Primer día del cómputo: ${esc(fmtFechaLarga(calc.inicio))}${calc.recorrido ? '<br>El último día era inhábil: se recorrió al siguiente hábil.' : ''}`}<br>Aviso: ${esc(fmtFechaLarga(aviso))}, ${esc(state.settings.horaAviso)} h</div>
   </div>`;
 }
 
@@ -107,26 +119,34 @@ export function editarPlazo(p, expedienteId = '') {
   const base = p ? { ...p } : {
     notificacion: todayISO(), dias: 15, tipoDias: 'habiles', surte: 'siguiente', recorrer: true, recordatorio2: false, estatus: 'pendiente', expedienteId,
   };
+  const calculo = (d) => d.modo !== 'fijo';
   openForm({
     title: isNew ? 'Nuevo plazo' : 'Editar plazo',
-    values: base,
+    values: { ...base, modo: base.vencimientoFijo ? 'fijo' : 'calculo', notificacion: base.notificacion || todayISO(), dias: base.dias || 15 },
     fields: [
       { name: 'actuacion', label: 'Actuación', required: true, placeholder: 'Ej. Interponer recurso de revisión', hint: 'En modo discreto este texto aparece en el calendario: no incluyas nombres.' },
       { name: 'expedienteId', label: 'Expediente', type: 'select', options: expOptions() },
-      { name: 'notificacion', label: 'Fecha de notificación', type: 'date', required: true },
-      { name: 'surte', label: 'La notificación surte efectos', type: 'select', options: [['siguiente', 'Al día hábil siguiente'], ['mismo', 'El mismo día']] },
-      { name: 'dias', label: 'Número de días', type: 'number', min: 1, max: 3650, inputmode: 'numeric', required: true },
-      { name: 'tipoDias', label: 'Tipo de días', type: 'segmented', options: [['habiles', 'Hábiles'], ['naturales', 'Naturales']] },
-      { name: 'recorrer', label: 'Si vence en día inhábil, recorrer al siguiente hábil', type: 'checkbox', hint: 'Solo aplica a plazos en días naturales.' },
+      { name: 'modo', label: 'Vencimiento', type: 'segmented', options: [['calculo', 'Calcular desde la notificación'], ['fijo', 'Ya conozco la fecha']] },
+      { name: 'vencimientoFijo', label: 'Fecha de vencimiento', type: 'date', required: true, showIf: (d) => !calculo(d) },
+      { name: 'notificacion', label: 'Fecha de notificación', type: 'date', required: true, showIf: calculo },
+      { name: 'surte', label: 'La notificación surte efectos', type: 'select', options: [['siguiente', 'Al día hábil siguiente'], ['mismo', 'El mismo día']], showIf: calculo },
+      { name: 'dias', label: 'Número de días', type: 'number', min: 1, max: 3650, inputmode: 'numeric', required: true, showIf: calculo },
+      { name: 'tipoDias', label: 'Tipo de días', type: 'segmented', options: [['habiles', 'Hábiles'], ['naturales', 'Naturales']], showIf: calculo },
+      { name: 'recorrer', label: 'Si vence en día inhábil, recorrer al siguiente hábil', type: 'checkbox', hint: 'Solo aplica a plazos en días naturales.', showIf: calculo },
       { name: 'recordatorio2', label: 'Recordatorio adicional 2 días hábiles antes', type: 'checkbox', hint: 'El aviso del día hábil anterior siempre se incluye.' },
       { name: 'estatus', label: 'Estatus', type: 'select', options: [['pendiente', 'Pendiente'], ['cumplido', 'Cumplido / presentado']] },
       { name: 'notas', label: 'Notas', type: 'textarea', rows: 3 },
     ],
     preview: previewPlazo,
-    onSubmit: async (data) => {
-      if (!calcularPlazo(calendario(), { notificacion: data.notificacion, dias: data.dias, tipo: data.tipoDias })) {
-        toast('Revisa la fecha y el número de días (entero, de 1 a 3650).');
+    onSubmit: async ({ modo, ...data }) => {
+      if (!calcDe({ ...data, modo })) {
+        toast(modo === 'fijo' ? 'Revisa la fecha de vencimiento.' : 'Revisa la fecha y el número de días (entero, de 1 a 3650).');
         return false;
+      }
+      if (modo === 'fijo') {
+        data = { ...data, notificacion: base.notificacion || null, dias: base.dias || null };
+      } else {
+        data.vencimientoFijo = null;
       }
       const saved = await store.save('plazos', { ...base, ...data });
       toast('Plazo guardado');
@@ -153,6 +173,7 @@ export function editarTarea(t, expedienteId = '') {
       { name: 'expedienteId', label: 'Expediente', type: 'select', options: expOptions() },
       { name: 'prioridad', label: 'Prioridad', type: 'segmented', options: PRIORIDADES },
       { name: 'fechaLimite', label: 'Fecha límite', type: 'date' },
+      { name: 'hora', label: 'Hora (opcional)', type: 'time' },
       { name: 'completada', label: 'Completada', type: 'checkbox' },
       { name: 'notas', label: 'Notas', type: 'textarea', rows: 3 },
     ],
@@ -207,21 +228,7 @@ export function asignarNota(n) {
   });
 }
 
-export function captura() {
-  const m = openForm({
-    title: 'Captura rápida',
-    values: {},
-    fields: [{ name: 'texto', label: 'Idea, pendiente o recordatorio', type: 'textarea', rows: 6, required: true, placeholder: 'Escribe… quedará en la bandeja de entrada.' }],
-    onSubmit: async ({ texto }) => {
-      await store.save('notas', { texto, expedienteId: null });
-      toast('Guardado en la bandeja de entrada');
-    },
-  });
-  m.form.querySelector('textarea').focus();
-}
-
 register({
-  captura: () => captura(),
   'nuevo-expediente': () => editarExpediente(),
   'editar-expediente': (el) => editarExpediente(store.get('expedientes', el.dataset.id)),
   'nueva-audiencia': (el) => editarAudiencia(null, el.dataset.exp || ''),

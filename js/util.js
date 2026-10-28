@@ -137,14 +137,14 @@ export function fieldHTML(f, v) {
   const val = v ?? f.default ?? '';
   const hint = f.hint ? `<p class="hint">${esc(f.hint)}</p>` : '';
   if (f.type === 'checkbox') {
-    return `<div class="field"><label class="check"><input type="checkbox" id="${id}" name="${f.name}"${val ? ' checked' : ''}><span>${esc(f.label)}</span></label>${hint}</div>`;
+    return `<div class="field" data-name="${f.name}"><label class="check"><input type="checkbox" id="${id}" name="${f.name}"${val ? ' checked' : ''}><span>${esc(f.label)}</span></label>${hint}</div>`;
   }
   if (f.type === 'segmented') {
     const opts = f.options.map((o) => {
       const [ov, ol] = optPair(o);
       return `<label><input type="radio" name="${f.name}" value="${esc(ov)}"${String(ov) === String(val) ? ' checked' : ''}><span>${esc(ol)}</span></label>`;
     }).join('');
-    return `<div class="field"><span class="label">${esc(f.label)}</span><div class="segmented">${opts}</div>${hint}</div>`;
+    return `<div class="field" data-name="${f.name}"><span class="label">${esc(f.label)}</span><div class="segmented">${opts}</div>${hint}</div>`;
   }
   const req = f.required ? ' required' : '';
   let input;
@@ -164,7 +164,7 @@ export function fieldHTML(f, v) {
     ].join('');
     input = `<input id="${id}" name="${f.name}" type="${f.type || 'text'}" value="${esc(val)}"${req}${attrs} placeholder="${esc(f.placeholder || '')}" autocomplete="off">`;
   }
-  return `<div class="field"><label for="${id}">${esc(f.label)}${f.required ? ' <span class="req" aria-hidden="true">*</span>' : ''}</label>${input}${hint}</div>`;
+  return `<div class="field" data-name="${f.name}"><label for="${id}">${esc(f.label)}${f.required ? ' <span class="req" aria-hidden="true">*</span>' : ''}</label>${input}${hint}</div>`;
 }
 
 export function readForm(form, fields) {
@@ -189,7 +189,14 @@ export function openForm({ title, fields, values = {}, submitLabel = 'Guardar', 
     <div class="modal-body">${body}${preview ? '<div class="preview" data-preview aria-live="polite"></div>' : ''}${extra}
     ${onDelete ? '<button type="button" class="btn danger block" data-delete>Eliminar</button>' : ''}</div></form>`);
   const form = m.el.querySelector('form');
-  const update = () => { if (preview) form.querySelector('[data-preview]').innerHTML = preview(readForm(form, fields)); };
+  const visible = (f, data) => !f.showIf || f.showIf(data);
+  const update = () => {
+    const data = readForm(form, fields);
+    for (const f of fields) {
+      if (f.showIf) { const w = form.querySelector(`[data-name="${f.name}"]`); if (w) w.hidden = !visible(f, data); }
+    }
+    if (preview) form.querySelector('[data-preview]').innerHTML = preview(data);
+  };
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   update();
@@ -198,7 +205,7 @@ export function openForm({ title, fields, values = {}, submitLabel = 'Guardar', 
     e.preventDefault();
     if (busy) return;
     const data = readForm(form, fields);
-    const missing = fields.find((f) => f.required && (data[f.name] === '' || data[f.name] == null));
+    const missing = fields.find((f) => f.required && visible(f, data) && (data[f.name] === '' || data[f.name] == null));
     if (missing) {
       toast(`Falta: ${missing.label}`);
       form.elements[missing.name]?.focus?.();

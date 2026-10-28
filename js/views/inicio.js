@@ -3,6 +3,7 @@ import { esc, todayISO, fmtFechaLarga, plural } from '../util.js';
 import { addDays } from '../plazos.js';
 import { rowAudiencia, rowPlazo, rowTarea, rowNota, infoPlazo, empty, section, byFechaHora, byTarea } from './common.js';
 import { pendientesCard } from './calui.js';
+import { campoInicio } from './captura.js';
 import { icon } from '../icons.js';
 
 function saludo() {
@@ -45,6 +46,7 @@ export function render() {
 
   const html = `<div class="page">
     <div class="hero"><h1>${saludo()}</h1><p>${esc(fmtFechaLarga(hoy))}</p></div>
+    ${campoInicio()}
     ${bannerRespaldo()}
     ${state.pendientes.length ? pendientesCard() : ''}
     <div class="grid">

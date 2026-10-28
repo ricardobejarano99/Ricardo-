@@ -1,7 +1,7 @@
 // Piezas compartidas entre vistas: búsquedas en el estado y renglones de listas.
 import { state } from '../store.js';
 import { esc, fmtFecha, todayISO } from '../util.js';
-import { makeCalendar, calcularPlazo, diasRestantes, semaforo } from '../plazos.js';
+import { makeCalendar, calcularPlazo, diasRestantes, semaforo, isISODate } from '../plazos.js';
 import { PRIORIDADES, PRIORIDAD_ORDEN } from '../catalogos.js';
 import { icon } from '../icons.js';
 
@@ -14,10 +14,17 @@ export function calendario() {
   return calCache.cal;
 }
 
+// Un plazo puede traer solo la fecha de vencimiento (vencimientoFijo), sin cómputo.
+export function vencimientoManual(fecha) {
+  return isISODate(fecha) ? { manual: true, vencimiento: fecha, efectos: null, inicio: null, computados: [], recorrido: false } : null;
+}
+
 export function infoPlazo(p) {
-  const calc = calcularPlazo(calendario(), {
-    notificacion: p.notificacion, dias: Number(p.dias), tipo: p.tipoDias, surte: p.surte, recorrer: p.recorrer,
-  });
+  const calc = p.vencimientoFijo
+    ? vencimientoManual(p.vencimientoFijo)
+    : calcularPlazo(calendario(), {
+      notificacion: p.notificacion, dias: Number(p.dias), tipo: p.tipoDias, surte: p.surte, recorrer: p.recorrer,
+    });
   if (!calc) return { calc: null, rest: null, sem: 'gris' };
   const rest = diasRestantes(calendario(), todayISO(), calc.vencimiento, p.tipoDias);
   const sem = p.estatus === 'cumplido' ? 'gris' : semaforo(rest, state.settings.semaforo);
@@ -82,7 +89,7 @@ export function rowTarea(t) {
   const meta = [
     `<span class="tag prio-${esc(t.prioridad || 'media')}">${esc(prio)}</span>`,
     e ? `<span>${esc(e.numero)}</span>` : '',
-    t.fechaLimite ? `<span class="${vencida ? 'overdue' : ''}">${vencida ? 'Venció' : 'Límite'} ${esc(fmtFecha(t.fechaLimite))}</span>` : '',
+    t.fechaLimite ? `<span class="${vencida ? 'overdue' : ''}">${vencida ? 'Venció' : 'Límite'} ${esc(fmtFecha(t.fechaLimite))}${t.hora ? `, ${esc(t.hora)}` : ''}</span>` : '',
   ].join('');
   return `<div class="row tarea${t.completada ? ' done' : ''}">
     <label class="row-lead checkwrap"><input type="checkbox" data-action="toggle-tarea" data-id="${esc(t.id)}"${t.completada ? ' checked' : ''} aria-label="Marcar como completada"></label>

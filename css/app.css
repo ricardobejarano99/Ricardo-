@@ -451,3 +451,20 @@ textarea { resize: vertical; line-height: 1.45; }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 .field > label.check { display: flex; color: var(--text); font-weight: 400; font-size: 16px; margin: 6px 0; }
+
+/* --- Captura rápida -------------------------------------------------- */
+.quick { padding: 12px 14px; }
+.quick-label { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.quick-label .icon { width: 18px; height: 18px; color: var(--accent); }
+.quick-row { display: flex; gap: 8px; }
+.quick-row input { flex: 1; min-width: 0; }
+.quick .hint { margin-top: 6px; }
+.cap-dijiste { margin-bottom: 12px; }
+.cap-dijiste .quote { margin-bottom: 6px; }
+.cap-avisos { margin: 0; padding-left: 18px; }
+.cap-avisos li { margin: 2px 0; }
+.cap-ok { display: flex; align-items: center; gap: 8px; color: var(--ok); font-weight: 600; margin: 4px 0 14px; }
+.cap-ok .icon { width: 20px; height: 20px; }
+.field.missing input, .field.missing select, .field.missing textarea { border-color: var(--sem-ambar); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sem-ambar) 25%, transparent); }
+.field.missing > label::after { content: " · falta"; color: var(--warn); font-weight: 700; }
+.banner > .cap-avisos { flex: 1 1 200px; min-width: 0; }

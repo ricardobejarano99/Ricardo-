@@ -1,6 +1,6 @@
 // Service worker: guarda toda la app para que funcione sin conexión.
 // Al publicar cambios, sube VERSION para que los dispositivos descarguen la nueva versión.
-const VERSION = 'despacho-1.0.0';
+const VERSION = 'despacho-1.1.0';
 
 const ASSETS = [
   './',
@@ -15,6 +15,7 @@ const ASSETS = [
   './js/crypto.js',
   './js/db.js',
   './js/icons.js',
+  './js/interprete.js',
   './js/plazos.js',
   './js/search.js',
   './js/seed.js',
@@ -23,6 +24,7 @@ const ASSETS = [
   './js/views/ajustes.js',
   './js/views/audiencias.js',
   './js/views/calui.js',
+  './js/views/captura.js',
   './js/views/common.js',
   './js/views/expedientes.js',
   './js/views/forms.js',

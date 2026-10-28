@@ -34,7 +34,7 @@ export function renderDetalle(id) {
   if (calc) {
     const aviso = prevHabil(cal, calc.vencimiento);
     const rec2 = prevHabil(cal, aviso);
-    const dias = desglose(cal, calc).map((d) => `<li class="${d.n ? 'cuenta' : 'no-cuenta'}${d.fecha === calc.vencimiento ? ' venc' : ''}">
+    const dias = calc.manual ? '' : desglose(cal, calc).map((d) => `<li class="${d.n ? 'cuenta' : 'no-cuenta'}${d.fecha === calc.vencimiento ? ' venc' : ''}">
       <span class="d">${esc(fmtFecha(d.fecha))}</span><span class="n">${d.n ? `Día ${d.n}` : d.fecha === calc.vencimiento ? 'Vence (recorrido)' : ''}</span>
       <span class="m">${d.motivo ? esc(d.motivo) : ''}</span></li>`).join('');
     cuerpo = `<div class="calc big sem-border-${sem}">
@@ -44,16 +44,17 @@ export function renderDetalle(id) {
       <div class="calc-warn">Verificar cómputo</div>
     </div>
     <section class="card"><dl class="kvs">
+      ${calc.manual ? `<div class="kv"><dt>Origen</dt><dd>Vencimiento capturado manualmente, sin cómputo. Para calcularlo, edita el plazo y elige "Calcular desde la notificación".</dd></div>` : `
       <div class="kv"><dt>Notificación</dt><dd>${esc(fmtFechaLarga(p.notificacion))}</dd></div>
       <div class="kv"><dt>Surte efectos</dt><dd>${esc(fmtFechaLarga(calc.efectos))}</dd></div>
       <div class="kv"><dt>Primer día del cómputo</dt><dd>${esc(fmtFechaLarga(calc.inicio))}</dd></div>
-      <div class="kv"><dt>Plazo</dt><dd>${esc(p.dias)} días ${p.tipoDias === 'naturales' ? 'naturales' : 'hábiles'}${calc.recorrido ? ' · recorrido al siguiente hábil' : ''}</dd></div>
+      <div class="kv"><dt>Plazo</dt><dd>${esc(p.dias)} días ${p.tipoDias === 'naturales' ? 'naturales' : 'hábiles'}${calc.recorrido ? ' · recorrido al siguiente hábil' : ''}</dd></div>`}
       <div class="kv"><dt>Aviso</dt><dd>${esc(fmtFechaLarga(aviso))}, ${esc(state.settings.horaAviso)} h</dd></div>
       ${p.recordatorio2 ? `<div class="kv"><dt>Recordatorio</dt><dd>${esc(fmtFechaLarga(rec2))}, ${esc(state.settings.horaAviso)} h</dd></div>` : ''}
       <div class="kv"><dt>Expediente</dt><dd>${e ? `<a href="#/expediente/${esc(e.id)}">${esc(e.numero)}</a>` : 'Sin expediente'}</dd></div>
     </dl>${p.notas ? `<div class="notes">${esc(p.notas)}</div>` : ''}</section>
-    <details class="card desglose"><summary>Ver día por día</summary><ol class="days">${dias}</ol>
-      <p class="hint">Calculado con tu lista de días inhábiles. Si falta un día declarado inhábil, el vencimiento saldrá adelantado.</p></details>
+    ${calc.manual ? (cal.esHabil(calc.vencimiento) ? '' : `<div class="banner warn">${icon('alert')}<div>La fecha capturada cae en día inhábil (${esc(cal.motivo(calc.vencimiento))}). Revísala.</div></div>`) : `<details class="card desglose"><summary>Ver día por día</summary><ol class="days">${dias}</ol>
+      <p class="hint">Calculado con tu lista de días inhábiles. Si falta un día declarado inhábil, el vencimiento saldrá adelantado.</p></details>`}
     ${calButtons('plazo', p.id)}`;
   }
   const html = `<div class="page">

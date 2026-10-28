@@ -56,12 +56,18 @@ export function eventosPlazo(p, exp, s, cal, calc) {
   const description = [
     'VERIFICAR CÓMPUTO',
     ...lineas,
-    `Notificación: ${corta(p.notificacion)}`,
-    `Surte efectos: ${corta(calc.efectos)}`,
-    `Plazo: ${p.dias} días ${p.tipoDias === 'naturales' ? 'naturales' : 'hábiles'}`,
+    ...(calc.manual
+      ? ['Vencimiento capturado manualmente, sin cómputo automático.']
+      : [
+        `Notificación: ${corta(p.notificacion)}`,
+        `Surte efectos: ${corta(calc.efectos)}`,
+        `Plazo: ${p.dias} días ${p.tipoDias === 'naturales' ? 'naturales' : 'hábiles'}`,
+      ]),
     `Vencimiento: ${corta(venc)}`,
     '',
-    'Cómputo automático de Despacho. Verifíquelo contra el calendario oficial de días inhábiles.',
+    calc.manual
+      ? 'Fecha de vencimiento capturada en Despacho. Verifíquela contra el calendario oficial de días inhábiles.'
+      : 'Cómputo automático de Despacho. Verifíquelo contra el calendario oficial de días inhábiles.',
   ].join('\n');
 
   const horaAviso = s.horaAviso || '09:00';
